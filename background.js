@@ -64,7 +64,15 @@ var background = {
 				allBg.activeListeners.force_https = true;
 				webRequest.onBeforeRequest.addListener(
 						allBg.handle_redirect, {
-							"urls" : [ "http://*.endoftheinter.net/*" ]
+							"urls" : [ "http://endoftheinter.net/*",
+									"http://boards.endoftheinter.net/*",
+									"http://wiki.endoftheinter.net/*",
+									"http://images.endoftheinter.net/*",
+									"http://i1.endoftheinter.net/*",
+									"http://i2.endoftheinter.net/*",
+									"http://i3.endoftheinter.net/*",
+									"http://i4.endoftheinter.net/*",
+									"http://static.endoftheinter.net/*"]
 						}, [ 'blocking' ]);
 			}
 			if (!cfg.force_https && allBg.activeListeners.force_https) {
@@ -869,7 +877,7 @@ var background = {
 	getUserID: function() {
 		var config = JSON.parse(localStorage['ChromeLL-Config']);
 		var xhr = new XMLHttpRequest();
-		xhr.open("GET", "http://boards.endoftheinter.net/topics/LUE", true);
+		xhr.open("GET", "https://boards.endoftheinter.net/topics/LUE", true);
 		xhr.onreadystatechange = function() {
 			if (xhr.readyState == 4 && xhr.status == 200) {
 				var html = document.createElement('html');
@@ -896,7 +904,7 @@ var background = {
 	
 	scrapeUserProfile: function(userID) {
 		var config = JSON.parse(localStorage['ChromeLL-Config']);
-		var url = "http://endoftheinter.net/profile.php?user=" + userID;
+		var url = "https://endoftheinter.net/profile.php?user=" + userID;
 		var xhr = new XMLHttpRequest();
 				
 		xhr.open("GET", url, true);
