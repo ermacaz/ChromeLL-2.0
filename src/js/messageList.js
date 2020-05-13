@@ -640,12 +640,11 @@ var messageList = {
 		},
 		getDataFromApi: function (e, i)
 		{
-			var t = e.split("/").slice(-1).join("/");
-
-			//<iframe src='https://gfycat.com/ifr/FocusedSaltyCranefly' frameborder='0' scrolling='no' allowfullscreen width='640' height='453'></iframe>
+			var t = e.split("/").slice(-1)[0].split("-")[0];
 
 			var n = document.createElement("iframe");
-			n.setAttribute("src", `https://gfycat.com/ifr/${t}`);
+			n.setAttribute("src", `https://gfycat.com/ifr/${t}?hd=1`);
+			n.setAttribute("allowfullscreen", '');
 			n.setAttribute("frameborder", "0");
 			n.setAttribute("scrolling", "no");
 			n.setAttribute("width", "640");
