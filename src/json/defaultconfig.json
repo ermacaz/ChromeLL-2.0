@@ -52,6 +52,7 @@
 	"imagemap_on_infobar":false,
 	"resize_imgs":false,
 	"img_max_width":"1440",
+	"embed_youtube":false,
 	"embed_on_hover":true,
 	"embed_gfycat":true,
 	"embed_imgur":true,

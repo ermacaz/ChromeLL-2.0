@@ -1186,6 +1186,15 @@ var messageList = {
 				{
 					var o = e[n];
 					messageList.config.embed_on_hover && a.test(o.href) && i.test(o.href) ? (o.className = "youtube", o.id = o.href + "&" + this.uniqueIndex, this.uniqueIndex++, o.addEventListener("mouseenter", messageList.handleEvent.mouseenter.bind(messageList)), o.addEventListener("mouseleave", messageList.handleEvent.mouseleave.bind(messageList))) : messageList.config.embed_gfycat && -1 < o.href.indexOf("gfycat.com/") ? (o.classList.add("media", "gfycat"), s = !0, (messageList.config.embed_gfycat_thumbs || "quoted-message" == o.parentNode.className) && o.setAttribute("name", "gfycat_thumb")) : messageList.config.embed_imgur && -1 < o.href.indexOf("imgur.com/") ? (o.classList.add("media", "imgur"), s = !0, (messageList.config.embed_gfycat_thumbs || "quoted-message" == o.parentNode.className) && o.setAttribute("name", "imgur_thumb")) : messageList.config.embed_tweets && -1 < o.href.indexOf("twitter.com/") && -1 < o.href.indexOf("status") && (o.classList.add("media", "twitter"), s = !0, o.id = o.href + "&" + this.uniqueIndex, this.uniqueIndex++, (t[o.href] || "quoted-message" == o.parentNode.className) && o.classList.add("click_embed_tweet"), t[o.href] = !0)
+					if( messageList.config.embed_youtube && (a.test(o.href) && i.test(o.href)) && ("quoted-message" != o.parentNode.className)) {
+						var messageText = o.parentElement.textContent;
+						var linkText = o.textContent.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+						var theRegex = `---\n((.|\n)*)?${linkText}`;
+
+						if (!messageText.match(theRegex)){
+							messageList.youtube.embed(o);
+						}
+					}
 				}
 				s && (messageList.mediaLoader(), window.addEventListener("scroll", messageList.mediaLoader), document.addEventListener("visibilitychange", messageList.mediaPauser))
 			}
