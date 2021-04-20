@@ -14,7 +14,7 @@ var topicList = {
 	pm: '',
 
 	functions: {
-		ignorator_topiclist: function(tr) {
+		ignorator_topiclist: function (tr) {
 			if (!topicList.ignoredUsers) {
 				return;
 			}
@@ -53,7 +53,7 @@ var topicList = {
 			}
 		},
 
-		ignore_keyword: function(tr, i) {
+		ignore_keyword: function (tr, i) {
 			if (!topicList.config.ignore_keyword_list) {
 				return;
 			}
@@ -86,7 +86,7 @@ var topicList = {
 			}
 		},
 
-		page_jump_buttons: function(tr, i) {
+		page_jump_buttons: function (tr, i) {
 			var inbox;
 
 			if (window.location.href.indexOf('inbox.php') > -1) {
@@ -126,7 +126,7 @@ var topicList = {
 			}
 		},
 
-		fix_new_post_jump: function(tr) {
+		fix_new_post_jump: function (tr) {
 			//Check each topic to see if the last seen post was the end of the page
 			//If it was, change the link to goto the next page
 
@@ -155,12 +155,12 @@ var topicList = {
 				var topic = link.href.match(/([0-9]+)/)[0];
 				if (lastSeen % 50 === 0) {
 					var newPage = lastSeen / 50 + 1;
-					link.href = "//boards.endoftheinter.net/showmessages.php?topic=" + topic + "&page=" +  newPage;
+					link.href = "//boards.endoftheinter.net/showmessages.php?topic=" + topic + "&page=" + newPage;
 				}
 			}
 		},
 
-		enable_keyword_highlight: function(tr) {
+		enable_keyword_highlight: function (tr) {
 			var highlights = topicList.highlightedKeywords;
 			if (!highlights || highlights.length === 0) {
 				return;
@@ -177,7 +177,7 @@ var topicList = {
 				// Check for regex (do people even use this??)
 				if (keyword.substring(0, 1) == '/') {
 					var reg = new RegExp(keys[j].match[k].substring(1, keyword.lastIndexOf('/')),
-							keyword.substring(keyword.lastIndexOf('/') + 1, keyword.length)
+						keyword.substring(keyword.lastIndexOf('/') + 1, keyword.length)
 					);
 
 					match = topicTitle.match(reg);
@@ -200,7 +200,7 @@ var topicList = {
 			}
 		},
 
-		enable_tag_highlight: function(tr) {
+		enable_tag_highlight: function (tr) {
 			var highlightTags = topicList.highlightedTags;
 
 			if (highlightTags.length === 0) {
@@ -245,7 +245,7 @@ var topicList = {
 			}
 		},
 
-		userhl_topiclist: function(tr) {
+		userhl_topiclist: function (tr) {
 			if (!topicList.config.enable_user_highlight) {
 				return;
 			}
@@ -262,7 +262,7 @@ var topicList = {
 						var td = tds[j];
 						td.setAttribute('highlighted', true);
 						var tdAnchors = td.getElementsByTagName('a');
-						td.style.background = '#'	+ highlightData[user].bg;
+						td.style.background = '#' + highlightData[user].bg;
 						td.style.color = '#' + highlightData[user].color;
 						for (var k = 0, anchorLen = tdAnchors.length; k < anchorLen; k++) {
 							var anchor = tdAnchors[k];
@@ -274,18 +274,18 @@ var topicList = {
 			}
 		},
 
-		zebra_tables: function(tr, i) {
+		zebra_tables: function (tr, i) {
 			if (i % 2 === 0) {
 				for (var j = 0; tr.getElementsByTagName('td')[j]; j++) {
 					if (tr.getElementsByTagName('td')[j].style.background === '') {
 						tr.getElementsByTagName('td')[j].style.background = '#'
-								+ topicList.config.zebra_tables_color;
+							+ topicList.config.zebra_tables_color;
 					}
 				}
 			}
 		},
 
-		highlight_serious: function(tr) {
+		highlight_serious: function (tr) {
 			var frElement = tr.getElementsByTagName('td')[0].getElementsByClassName('fr')[0];
 
 			if (frElement.innerHTML.indexOf('Serious') === -1) {
@@ -308,7 +308,7 @@ var topicList = {
 	 *  Prepares arrays for ignorator/highlighter methods.
 	 */
 
-	prepareArrays: function() {
+	prepareArrays: function () {
 		if (this.config.ignorator_list) {
 			this.ignoredUsers = this.config.ignorator_list.split(',').map((user) => {
 				return user.trim();
@@ -361,7 +361,7 @@ var topicList = {
 		}
 	},
 
-	checkTags: function() {
+	checkTags: function () {
 		var bookmarks = document.getElementById('bookmarks').getElementsByTagName('span');
 		var savedTags = {};
 
@@ -382,7 +382,7 @@ var topicList = {
 		});
 	},
 
-	addListeners: function() {
+	addListeners: function () {
 		const LEFT_CLICK = 0;
 		const MIDDLE_CLICK = 1;
 
@@ -410,13 +410,13 @@ var topicList = {
 
 	},
 
-	createPageJumpUrl: function(target) {
+	createPageJumpUrl: function (target) {
 		var td, history, inbox;
 
 		if (window.location.href.indexOf('history.php') > -1) {
 			history = true;
 			td = target.parentNode.parentNode.parentNode.parentNode
-					.parentNode.getElementsByTagName('td')[2];
+				.parentNode.getElementsByTagName('td')[2];
 		}
 
 		else if (window.location.href.indexOf('inbox.php') > -1) {
@@ -426,7 +426,7 @@ var topicList = {
 
 		else {
 			td = target.parentNode.parentNode.parentNode.parentNode
-					.getElementsByTagName('td')[2];
+				.getElementsByTagName('td')[2];
 		}
 
 		// Remove unread messages count and work out position of last page
@@ -469,7 +469,7 @@ var topicList = {
 
 	handle: {
 
-		message: function(msg) {
+		message: function (msg) {
 			if (msg.action !== 'ignorator_update') {
 				switch (msg.action) {
 					case "showIgnorated":
@@ -482,7 +482,7 @@ var topicList = {
 							for (var i = 0, len = ignoredTopics.length; i < len; i++) {
 								var ignoredTopic = ignoredTopics[i];
 								var usernameElement = ignoredTopic.getElementsByTagName('td')[1]
-										.getElementsByTagName('a')[0];
+									.getElementsByTagName('a')[0];
 
 								if (msg.value.toLowerCase() == usernameElement.innerHTML.toLowerCase()) {
 									topicsToShow.push(ignoredTopic);
@@ -542,7 +542,7 @@ var topicList = {
 	 *  Need to fix this properly in future update
 	 */
 
-	fixPmConfigFlags: function() {
+	fixPmConfigFlags: function () {
 		if (this.config.ignorator_topiclist) {
 			this.config.ignorator_topiclist_pm = true;
 		}
@@ -556,7 +556,7 @@ var topicList = {
 		}
 	},
 
-	applyDomModifications: function(pm) {
+	applyDomModifications: function (pm) {
 		var grids = document.getElementsByClassName('grid');
 
 		for (var i = 0, gridLen = grids.length; i < gridLen; i++) {
@@ -608,11 +608,11 @@ var topicList = {
 		}
 
 		if (this.config.browse_from_date) {
-		this.createDatePicker();
+			this.createDatePicker();
 		}
 	},
 
-	createDatePicker: function() {
+	createDatePicker: function () {
 		if (window.location.pathname === '/history.php' || window.location.pathname === '/main.php') {
 			// ts parameter doesn't affect these pages
 			return;
@@ -652,14 +652,14 @@ var topicList = {
 				minDate: new Date(year, month, day),
 				maxDate: new Date(),
 				yearRange: [year, new Date().getFullYear()],
-				onSelect: function() {
+				onSelect: function () {
 					topicList.handleDateSelection(this.getMoment());
 				}
 			});
 		}
 	},
 
-	handleDateSelection: function(date) {
+	handleDateSelection: function (date) {
 		const DATE_CONSTRUCTOR_FORMAT = 'YYYY/MM/DD';
 		const MILLISECONDS_IN_ONE_SECOND = 1000;
 		const TIMESTAMP_PARAM = '?ts=';
@@ -688,7 +688,7 @@ var topicList = {
 		window.location.href = window.location.origin + window.location.pathname + newParams;
 	},
 
-	waitForAsyncContent: function() {
+	waitForAsyncContent: function () {
 		// We need to wait for async stuff on page to load before we can call topic list functions
 		var melonwolfObserver = new MutationObserver((mutations) => {
 			topicList.applyDomModifications(topicList.pm);
@@ -709,7 +709,7 @@ var topicList = {
 		}
 	},
 
-	init: function(config) {
+	init: function (config) {
 		this.config = config.data;
 		this.prepareArrays();
 		this.globalPort = chrome.runtime.connect();
@@ -719,7 +719,7 @@ var topicList = {
 
 			if (this.config.dramalinks) {
 
-				chrome.runtime.sendMessage({ need : "dramalinks" }, (response) => {
+				chrome.runtime.sendMessage({ need: "dramalinks" }, (response) => {
 
 					dramalinks.html = response.data;
 					dramalinks.config = topicList.config;

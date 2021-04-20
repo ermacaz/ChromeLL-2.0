@@ -128,7 +128,11 @@ var options = {
 					.getElementsByClassName('template_title').length - 1].value = j;
 			options.ui.addDiv.postTemplate();
 		}
-		document.getElementById('clear_notify').value = config.clear_notify;		
+		document.getElementById('clear_notify').value = config.clear_notify;
+		// document.getElementById('transload_width_resize').value = config.transload_width_resize;
+		document.getElementById('transload_max_width').value = config.transload_max_width;
+		// document.getElementById('transload_height_resize').value = config.transload_height_resize;	
+		document.getElementById('transload_max_height').value = config.transload_max_height;			
 		// show version
 		var manifest = chrome.runtime.getManifest();
 		document.getElementById('version').innerText = manifest.version;
@@ -1452,6 +1456,8 @@ var options = {
 				}
 			}
 			config.clear_notify = document.getElementById('clear_notify').value;
+			config.transload_max_width = document.getElementById('transload_max_width').value;
+			config.transload_max_height = document.getElementById('transload_max_height').value;
 			config.last_saved = new Date().getTime();
 			localStorage['ChromeLL-Config'] = JSON.stringify(config);
 	},
