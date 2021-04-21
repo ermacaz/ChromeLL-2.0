@@ -2,13 +2,17 @@
 const UPLOAD_SIZE_LIMIT = 4000000; // 4MB
 var MAX_WIDTH  = null;
 var MAX_HEIGHT = null;
+var ENABLE_WIDTH_RESIZE = null;
+var ENABLE_HEIGHT_RESIZE = null;
 	
 var imgurNotificationId;
 
 function imageTransloader(info, shouldRename) {
 	var config = JSON.parse(localStorage['ChromeLL-Config']);
-	MAX_WIDTH  = (config.transload_width_resize)  ? (parseInt(config.transload_max_width))  : (2<<15);
-	MAX_HEIGHT = (config.transload_height_resize) ? (parseInt(config.transload_max_height)) : (2<<15);
+	ENABLE_WIDTH_RESIZE = config.transload_width_resize;
+	ENABLE_HEIGHT_RESIZE = config.transload_height_resize;
+	MAX_WIDTH  = (ENABLE_WIDTH_RESIZE)  ? (parseInt(config.transload_max_width))  : (2<<15);
+	MAX_HEIGHT = (ENABLE_HEIGHT_RESIZE) ? (parseInt(config.transload_max_height)) : (2<<15);
 	var url = checkUrl(info.srcUrl);
 	var filename = getFilename(info.srcUrl);
 	
@@ -174,26 +178,19 @@ function fetchImage(url, callback) {
 
 			var blob = new Blob([dataview]);
 			//check if image should be resized
-			switch (mimetype) {
-				case "image/jpg":
-				case "image/jpeg":
-					var dimentions = getJpegDimetions(arrayBufferView)
-					if ((dimentions[0] > MAX_WIDTH) || (dimentions[1] > MAX_HEIGHT)) {
-						resizeImage(blob, mimetype, callback)
-						// resizeJpeg(arrayBufferView, dimentions[0], dimentions[1],  filesize, mimetype, callback)
-					} else {
+			if (ENABLE_HEIGHT_RESIZE || ENABLE_WIDTH_RESIZE) {
+				switch (mimetype) {
+					case "image/jpg":
+					case "image/jpeg":
+					case "image/png":
+						resizeImage(blob, mimetype, callback);
+						break;		
+					default:
 						callback(filesize, mimetype, arrayBufferView);
-					}
-					break;
-				case "image/png":
-					var dv = new DataView(arrayBufferView.buffer)
-					if ((dv.getInt32(16) > MAX_WIDTH) || (dv.getInt32(20) > MAX_HEIGHT)) {
-						resizeImage(blob, mimetype, callback)
-					}
-					break;
-				default:
-					callback(filesize, mimetype, arrayBufferView);
-					break;
+						break;
+				}
+			} else {
+				callback(filesize, mimetype, arrayBufferView);
 			}
 		} 	
 		else {
@@ -208,61 +205,38 @@ function resizeImage(blob, mimetype, callback) {
 	//draws image on a canvas, resizes canvas, then extracts image data
 	var canvas = document.createElement('canvas');
 	var context = canvas.getContext('2d');
-	var maxW = MAX_WIDTH;
-	var maxH = MAX_HEIGHT;
 	var img = document.createElement('img');
 	img.onload = function() {
 	  var iw = img.width;
 	  var ih = img.height;
-	  var scale = Math.min((maxW / iw), (maxH / ih));
-	  var iwScaled = iw * scale;
-	  var ihScaled = ih * scale;
-	  canvas.width = iwScaled;
-	  canvas.height = ihScaled;
-	  context.drawImage(img, 0, 0, iwScaled, ihScaled);
-	  canvas.toBlob(function(blob) {
+	  //check if resizing is required
+	  if ((ENABLE_WIDTH_RESIZE && (iw > MAX_WIDTH)) || (ENABLE_HEIGHT_RESIZE && (ih > MAX_HEIGHT))) {
+		var scale = Math.min((MAX_WIDTH / iw), (MAX_HEIGHT / ih));
+		var iwScaled = iw * scale;
+		var ihScaled = ih * scale;
+		canvas.width = iwScaled;
+		canvas.height = ihScaled;
+		context.drawImage(img, 0, 0, iwScaled, ihScaled);
+		canvas.toBlob(function(newBlob) {
 			var arrayBuffer;
 			var fileReader = new FileReader();
 			fileReader.onload = function(event) {
 				arrayBuffer = event.target.result;
-				callback(5, mimetype, new Uint8Array(arrayBuffer))
+				callback(arrayBuffer.byteLength, mimetype, new Uint8Array(arrayBuffer))
 			};
-			fileReader.readAsArrayBuffer(blob);
+			fileReader.readAsArrayBuffer(newBlob);
 	  	}, mimetype, 1.0);
+	  } else {
+		var arrayBuffer;
+		var fileReader = new FileReader();
+		fileReader.onload = function(event) {
+			arrayBuffer = event.target.result;
+			callback(arrayBuffer.byteLength, mimetype, new Uint8Array(arrayBuffer))
+		};
+		fileReader.readAsArrayBuffer(blob);
+	  }
 	}
 	img.src = URL.createObjectURL(blob);
-}
-
-function getJpegDimetions(arrayBufferView) {
-	var height = null;
-	var width = null;
-	var i = 0;
-	//check that this is a valid jpeg
-	if(arrayBufferView[i] == 0xFF && arrayBufferView[i+1] == 0xD8 && arrayBufferView[i+2] == 0xFF && arrayBufferView[i+3] == 0xE0) {
-		if (arrayBufferView[i+6] == 'J'.charCodeAt(0) && arrayBufferView[i+7] == 'F'.charCodeAt(0) && arrayBufferView[i+8] == 'I'.charCodeAt(0) && arrayBufferView[i+9] == 'F'.charCodeAt(0) && arrayBufferView[i+10] == 0x00) {
-			var blockLength = arrayBufferView[i+4] * 256 + arrayBufferView[i+5];
-			var posBlockStart = null;
-			//look for FFC0 signature where resolution is specified
-			for (i; i < arrayBufferView.length; i++) {
-				if (arrayBufferView[i] == 0xFF && arrayBufferView[i+1] == 0xE1) {
-					//thumbnail image, skip over
-					while(arrayBufferView[i] != 0xFF || arrayBufferView[i+1] != 0xD9) {
-						i += 1;
-					}
-				}
-				if (arrayBufferView[i] == 0xFF && arrayBufferView[i+1] == 0xC0 && arrayBufferView[i+4] == 0x08) {
-					posBlockStart = i;
-					break;
-				}
-			}
-			if (posBlockStart) {
-				var sizeStart = posBlockStart + 5;
-				height = arrayBufferView[sizeStart]<<8 | arrayBufferView[sizeStart+1];
-				width = arrayBufferView[sizeStart+2]<<8 | arrayBufferView[sizeStart+3];
-			}
-		}
-	}
-	return [width,height]
 }
 
 function uploadToEti(blob, filename) {
