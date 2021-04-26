@@ -1,10 +1,18 @@
 // Original code by Milan
-
 const UPLOAD_SIZE_LIMIT = 4000000; // 4MB
-
+var MAX_WIDTH  = null;
+var MAX_HEIGHT = null;
+var ENABLE_WIDTH_RESIZE = null;
+var ENABLE_HEIGHT_RESIZE = null;
+	
 var imgurNotificationId;
 
 function imageTransloader(info, shouldRename) {
+	var config = JSON.parse(localStorage['ChromeLL-Config']);
+	ENABLE_WIDTH_RESIZE = config.transload_width_resize;
+	ENABLE_HEIGHT_RESIZE = config.transload_height_resize;
+	MAX_WIDTH  = (ENABLE_WIDTH_RESIZE)  ? (parseInt(config.transload_max_width))  : (2<<15);
+	MAX_HEIGHT = (ENABLE_HEIGHT_RESIZE) ? (parseInt(config.transload_max_height)) : (2<<15);
 	var url = checkUrl(info.srcUrl);
 	var filename = getFilename(info.srcUrl);
 	
@@ -18,8 +26,13 @@ function imageTransloader(info, shouldRename) {
 		}
 	}
 	
-	fetchImage(url, (filesize, mimetype, blob) => {
+	fetchImage(url, (filesize, mimetype, arrayBuffer) => {
 		// GIFs larger than UPLOAD_SIZE_LIMIT will not upload to ETI correctly. Use Imgur instead
+		
+		var dataview = new DataView(arrayBuffer.buffer)
+		var blob = new Blob([dataview])
+
+
 		if (filesize > UPLOAD_SIZE_LIMIT && mimetype === 'image/gif') {
 			uploadToImgur(blob);
 		}
@@ -157,20 +170,73 @@ function fetchImage(url, callback) {
 			// Get metadata
 			var filesize = fileGet.getResponseHeader('Content-Length');
 			var mimetype = fileGet.getResponseHeader('Content-Type');
-			
 			// Create blob
-			var dataview = new DataView(fileGet.response);
+			var response = fileGet.response;
+			var arrayBufferView = new Uint8Array ( response);
+			// var blob = new Blob( [ arrayBufferView ], { type: mimetype } );
+			var dataview = new DataView(response);
+
 			var blob = new Blob([dataview]);
-			
-			callback(filesize, mimetype, blob);
-		} 
-		
+			//check if image should be resized
+			if (ENABLE_HEIGHT_RESIZE || ENABLE_WIDTH_RESIZE) {
+				switch (mimetype) {
+					case "image/jpg":
+					case "image/jpeg":
+					case "image/png":
+						resizeImage(blob, mimetype, callback);
+						break;		
+					default:
+						callback(filesize, mimetype, arrayBufferView);
+						break;
+				}
+			} else {
+				callback(filesize, mimetype, arrayBufferView);
+			}
+		} 	
 		else {
 			console.log('Error ', fileGet.statusText);
 		}
 	};
 	
 	fileGet.send();
+}
+
+function resizeImage(blob, mimetype, callback) {
+	//draws image on a canvas, resizes canvas, then extracts image data
+	var canvas = document.createElement('canvas');
+	var context = canvas.getContext('2d');
+	var img = document.createElement('img');
+	img.onload = function() {
+	  var iw = img.width;
+	  var ih = img.height;
+	  //check if resizing is required
+	  if ((ENABLE_WIDTH_RESIZE && (iw > MAX_WIDTH)) || (ENABLE_HEIGHT_RESIZE && (ih > MAX_HEIGHT))) {
+		var scale = Math.min((MAX_WIDTH / iw), (MAX_HEIGHT / ih));
+		var iwScaled = iw * scale;
+		var ihScaled = ih * scale;
+		canvas.width = iwScaled;
+		canvas.height = ihScaled;
+		context.drawImage(img, 0, 0, iwScaled, ihScaled);
+		canvas.toBlob(function(newBlob) {
+			var arrayBuffer;
+			var fileReader = new FileReader();
+			fileReader.onload = function(event) {
+				arrayBuffer = event.target.result;
+				callback(arrayBuffer.byteLength, mimetype, new Uint8Array(arrayBuffer))
+			};
+			fileReader.readAsArrayBuffer(newBlob);
+	  	}, mimetype, 1.0);
+	  } else {
+		var arrayBuffer;
+		var fileReader = new FileReader();
+		fileReader.onload = function(event) {
+			arrayBuffer = event.target.result;
+			callback(arrayBuffer.byteLength, mimetype, new Uint8Array(arrayBuffer))
+		};
+		fileReader.readAsArrayBuffer(blob);
+	  }
+	}
+	img.src = URL.createObjectURL(blob);
 }
 
 function uploadToEti(blob, filename) {
@@ -349,3 +415,4 @@ function copyToClipboard(text) {
 		
 	});		
 }
+

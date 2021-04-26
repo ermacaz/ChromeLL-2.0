@@ -940,14 +940,17 @@ var background = {
 					modArray = Array.prototype.slice.call(modTags);
 				}
 				
-				var tagArray = adminArray.concat(modArray);
+				if (isAdmin && isMod) {
+					var tagArray = adminArray.concat(modArray);
 				
-				for (var i = 0, len = tagArray.length; i < len; i++) {
-					var tag = tagArray[i].innerText;
-					tagArray[i] = tag;
+					for (var i = 0, len = tagArray.length; i < len; i++) {
+						var tag = tagArray[i].innerText;
+						tagArray[i] = tag;
+					}
+					
+					config.tag_admin = tagArray;
 				}
-				
-				config.tag_admin = tagArray;
+			
 				config.creation_date = creationDate;
 				
 				localStorage['ChromeLL-Config'] = JSON.stringify(config);
