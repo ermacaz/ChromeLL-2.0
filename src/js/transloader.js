@@ -239,8 +239,8 @@ function resizeImage(blob, mimetype, callback) {
 	img.src = URL.createObjectURL(blob);
 }
 
-function uploadToEti(blob, filename) {
-	const ETI_UPLOAD_ENDPOINT = 'http://u.endoftheinter.net/u.php';
+function uploadToEti(blob, filename, callback) {
+	const ETI_UPLOAD_ENDPOINT = 'https://u.endoftheinter.net/u.php';
 	// Construct FormData object containing image blob
 	var formData = new FormData();
 	formData.append('file', blob, filename);
@@ -250,13 +250,17 @@ function uploadToEti(blob, filename) {
 	xhr.open('POST', ETI_UPLOAD_ENDPOINT, true);
 
 	xhr.onload = () => {
-		
+
 		if (xhr.status === 200) {
 			var responseText = xhr.responseText;
 			var value = scrapeValue(responseText);
-			
-			if (value) {			
-				copyToClipboard(value);			
+
+			if (value) {
+				if (callback != undefined) {
+					callback(responseText);
+				} else {
+					copyToClipboard(value);			
+				}	
 			}
 			
 		} else {
@@ -295,7 +299,7 @@ function scrapeValue(response) {
 	}		
 }
 
-function uploadToImgur(blob) {
+function uploadToImgur(blob, callback) {
 	const IMGUR_UPLOAD_ENDPOINT = 'https://api.imgur.com/3/image';
 	const API_KEY = 'Client-ID 6356976da2dad83';
 	var formData = new FormData();
@@ -309,7 +313,11 @@ function uploadToImgur(blob) {
 		if (xhr.status === 200) {	
 			var jsonResponse = JSON.parse(xhr.responseText);
 			var url = jsonResponse.data.gifv;
-			copyToClipboard(url);
+			if (callback != undefined) {
+				callback(responseText);
+			} else {
+				copyToClipboard(value);			
+			}	
 		}		
 		else {
 			showErrorNotification(xhr.status);
@@ -416,3 +424,42 @@ function copyToClipboard(text) {
 	});		
 }
 
+// called from forground scripts to transload images
+chrome.runtime.onMessage.addListener(function(message, sender, handler) {
+	if (message && message.type == 'AsyncUpload') {
+		var dataview = new DataView(Uint8Array.from(Object.values(message.fileBytes)).buffer);
+		var blob = new Blob([dataview],{type: message.fileType});
+		var config = JSON.parse(localStorage['ChromeLL-Config']);
+		ENABLE_WIDTH_RESIZE = config.transload_width_resize;
+		ENABLE_HEIGHT_RESIZE = config.transload_height_resize;
+		MAX_WIDTH  = (ENABLE_WIDTH_RESIZE)  ? (parseInt(config.transload_max_width))  : (2<<15);
+		MAX_HEIGHT = (ENABLE_HEIGHT_RESIZE) ? (parseInt(config.transload_max_height)) : (2<<15);
+		if (ENABLE_HEIGHT_RESIZE || ENABLE_WIDTH_RESIZE) {
+			switch (blob.type) {
+				case "image/jpg":
+				case "image/jpeg":
+				case "image/png":
+					resizeImage(blob, blob.type, function(filesize, mimetype, arrayBuffer) {
+						var dataview = new DataView(arrayBuffer.buffer);
+						var blob = new Blob([dataview]);
+						uploadToEti(blob, message.fileName, handler);
+					});
+					break;		
+				default:
+					if (dataview.length > UPLOAD_SIZE_LIMIT) {
+						uploadToImgur(blob, message.fileName, handler)			 
+					} else {
+						uploadToEti(blob, message.fileName, handler)
+					}
+					break;
+			}
+		} else {
+			if (dataview.length > UPLOAD_SIZE_LIMIT) {
+				uploadToImgur(blob, message.fileName, handler)			 
+			} else {
+				uploadToEti(blob, message.fileName, handler)
+			}
+		}
+		return true
+	}
+});

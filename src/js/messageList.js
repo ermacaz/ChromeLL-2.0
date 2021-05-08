@@ -317,10 +317,11 @@ var messageList = {
 			(document.getElementById("message") || document.getElementsByTagName("textarea")[0]).addEventListener("drop", function (e)
 			{
 				new FileReader;
-				for (var t = 0, s = e.dataTransfer.files.length; t < s; t++) allPages.asyncUploadHandler(e.dataTransfer.files[t], function (e)
-				{
-					allPages.insertIntoTextarea(e)
-				});
+				for (var t = 0, s = e.dataTransfer.files.length; t < s; t++) {
+					allPages.asyncUploadHandler(e.dataTransfer.files[t], function (e) {
+						allPages.insertIntoTextarea(e)
+					});
+				} 
 				e.preventDefault()
 			})
 		},
