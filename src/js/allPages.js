@@ -26,7 +26,7 @@ var allPages = {
 			}
 			
 			// text area when hitting ~ in topic
-			var textArea2 = document.getElementById("u0_59");
+			var textArea2 = document.getElementsByClassName('quickpost-body')[0].getElementsByTagName('textarea')[0]
 			if (textArea2  != undefined) {
 				textArea2.addEventListener('paste', (event) => {
 					var items = (event.clipboardData || event.originalEvent.clipboardData).items;
@@ -690,23 +690,23 @@ var allPages = {
 			fileReader.onload = function(event) {
 				arrayBuffer = event.target.result;
 
-				if (allPages.asyncUploadQueue.index >= allPages.asyncUploadQueue.total) {
-					// No need to show progress anymore - change type to 'basic' and update title
-					if (allPages.asyncUploadQueue.index > 1) {
-						chrome.runtime.sendMessage({ need: 'clear_progress_notify', title: 'Uploads complete' });
-					}
-					else {
-						chrome.runtime.sendMessage({ need: 'clear_progress_notify', title: 'Upload complete' });
-					}
-					allPages.asyncUploadQueue.clear();
-				} else {
-					chrome.runtime.sendMessage({ need: 'update_progress_notify', 
-						update: {						
-							title: 'Uploading: (' + allPages.asyncUploadQueue.index + '/' + allPages.asyncUploadQueue.total + ')',
-							progress: 0
-						}
-					});												
-				}
+				// if (allPages.asyncUploadQueue.index >= allPages.asyncUploadQueue.total) {
+				// 	// No need to show progress anymore - change type to 'basic' and update title
+				// 	if (allPages.asyncUploadQueue.index > 1) {
+				// 		chrome.runtime.sendMessage({ need: 'clear_progress_notify', title: 'Uploads complete' });
+				// 	}
+				// 	else {
+				// 		chrome.runtime.sendMessage({ need: 'clear_progress_notify', title: 'Upload complete' });
+				// 	}
+				// 	allPages.asyncUploadQueue.clear();
+				// } else {
+				// 	chrome.runtime.sendMessage({ need: 'update_progress_notify', 
+				// 		update: {						
+				// 			title: 'Uploading: (' + allPages.asyncUploadQueue.index + '/' + allPages.asyncUploadQueue.total + ')',
+				// 			progress: 0
+				// 		}
+				// 	});												
+				// }
 				// send to background script to upload without hitting CORS error
 				chrome.runtime.sendMessage({
 					type: 'AsyncUpload',
@@ -723,12 +723,12 @@ var allPages = {
 			fileReader.readAsArrayBuffer(file);		
 			//this.asyncUpload(this.asyncUploadQueue.next(), callback);
 			
-			chrome.runtime.sendMessage({ need: 'progress_notify',
-					data: {
-							title: 'Uploading: (' + this.asyncUploadQueue.index + '/' + this.asyncUploadQueue.total + ')',
-							progress: 0
-					}
-			});			
+			// chrome.runtime.sendMessage({ need: 'progress_notify',
+			// 		data: {
+			// 				title: 'Uploading: (' + this.asyncUploadQueue.index + '/' + this.asyncUploadQueue.total + ')',
+			// 				progress: 0
+			// 		}
+			// });			
 		}			
 	},
 
