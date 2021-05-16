@@ -461,5 +461,25 @@ chrome.runtime.onMessage.addListener(function(message, sender, handler) {
 			}
 		}
 		return true
+	} else if (message && message.type == 'backGroundUrltoBlob') {
+		fetch(message.url)
+		.then(function(response) {
+			return response.blob()
+		})
+		.then(function(blob) {
+			var arrayBuffer;
+			var fileType = blob.type
+			var fileReader = new FileReader();
+			fileReader.onload = function(event) {
+				var arrayBuffer = event.target.result;
+				var bytes = new Uint8Array(arrayBuffer)
+				handler( {
+					fileBytes: bytes,
+					fileType: fileType
+				})
+			}
+			fileReader.readAsArrayBuffer(blob);
+		});
+		return true;
 	}
 });

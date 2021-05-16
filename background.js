@@ -809,6 +809,7 @@ var background = {
 				case "getPaginatedObjectStore":
 					database.getPaginatedObjectStore(request.page, request.type, sendResponse);
 					return true;
+				case 'backGroundUrltoBlob':
 				case "AsyncUpload":
 					// handled in transloader.js
 					return true;
