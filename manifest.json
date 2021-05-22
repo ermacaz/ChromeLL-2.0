@@ -1,6 +1,6 @@
 {
   "name": "ChromeLL-Next",
-  "version": "1.5",
+  "version": "1.6",
   "manifest_version": 2,
   "description": "Enhancements for the forums at the End of the Internet",
   "options_ui": {
