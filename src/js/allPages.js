@@ -26,21 +26,25 @@ var allPages = {
 			}
 			
 			// text area when hitting ~ in topic
-			var textArea2 = document.getElementsByClassName('quickpost-body')[0].getElementsByTagName('textarea')[0]
-			if (textArea2  != undefined) {
-				textArea2.addEventListener('paste', (event) => {
-					var items = (event.clipboardData || event.originalEvent.clipboardData).items;
-					for (index in items) {
-						var item = items[index];
-						if (item.kind === 'file') {
-							var blob = item.getAsFile();
-							allPages.asyncUploadHandler(blob, function (e){
-								allPages.insertIntoTextarea(e)
-							});
+			var quickpost = document.getElementsByClassName('quickpost-body')[0]
+			if (quickpost) {
+				var textArea2 = quickpost.getElementsByTagName('textarea')[0]
+				if (textArea2  != undefined) {
+					textArea2.addEventListener('paste', (event) => {
+						var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+						for (index in items) {
+							var item = items[index];
+							if (item.kind === 'file') {
+								var blob = item.getAsFile();
+								allPages.asyncUploadHandler(blob, function (e){
+									allPages.insertIntoTextarea(e)
+								});
+							}
 						}
-					}
-				});
+					});
+				}
 			}
+			
 		},
 		
 		error_check : function() {
