@@ -7,6 +7,45 @@ var allPages = {
 	 */
 	
 	commonFunctions: {
+		image_paste: function() {
+			// text area on post message page
+			var textArea = document.getElementById("message");
+			if (textArea != undefined) {
+				textArea.addEventListener('paste', (event) => {
+					var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+					for (index in items) {
+						var item = items[index];
+						if (item.kind === 'file') {
+							var blob = item.getAsFile();
+							allPages.asyncUploadHandler(blob, function (e){
+								allPages.insertIntoTextarea(e)
+							});
+						}
+					}
+				});
+			}
+			
+			// text area when hitting ~ in topic
+			var quickpost = document.getElementsByClassName('quickpost-body')[0]
+			if (quickpost) {
+				var textArea2 = quickpost.getElementsByTagName('textarea')[0]
+				if (textArea2  != undefined) {
+					textArea2.addEventListener('paste', (event) => {
+						var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+						for (index in items) {
+							var item = items[index];
+							if (item.kind === 'file') {
+								var blob = item.getAsFile();
+								allPages.asyncUploadHandler(blob, function (e){
+									allPages.insertIntoTextarea(e)
+								});
+							}
+						}
+					});
+				}
+			}
+			
+		},
 		
 		error_check : function() {
 			if (document.body.style.backgroundImage.indexOf('errorlinks.png') > -1) {
@@ -644,23 +683,63 @@ var allPages = {
 	 */
 	
 	asyncUploadHandler: function(file, callback) {
+		if (this.asyncUploadQueue.queue.length == 0) {
+			this.asyncUploadQueue.working = false;
+		}
 		this.asyncUploadQueue.push(file);
-		
+		newCb = this.handleAsyncUploadResponse
 		if (!this.asyncUploadQueue.working) {
-			this.asyncUpload(this.asyncUploadQueue.next(), callback);
-			
-			chrome.runtime.sendMessage({ need: 'progress_notify',
-					data: {
-							title: 'Uploading: (' + this.asyncUploadQueue.index + '/' + this.asyncUploadQueue.total + ')',
-							progress: 0
+			var arrayBuffer;
+			var fileReader = new FileReader();
+			fileReader.onload = function(event) {
+				arrayBuffer = event.target.result;
+
+				// if (allPages.asyncUploadQueue.index >= allPages.asyncUploadQueue.total) {
+				// 	// No need to show progress anymore - change type to 'basic' and update title
+				// 	if (allPages.asyncUploadQueue.index > 1) {
+				// 		chrome.runtime.sendMessage({ need: 'clear_progress_notify', title: 'Uploads complete' });
+				// 	}
+				// 	else {
+				// 		chrome.runtime.sendMessage({ need: 'clear_progress_notify', title: 'Upload complete' });
+				// 	}
+				// 	allPages.asyncUploadQueue.clear();
+				// } else {
+				// 	chrome.runtime.sendMessage({ need: 'update_progress_notify', 
+				// 		update: {						
+				// 			title: 'Uploading: (' + allPages.asyncUploadQueue.index + '/' + allPages.asyncUploadQueue.total + ')',
+				// 			progress: 0
+				// 		}
+				// 	});												
+				// }
+				// send to background script to upload without hitting CORS error
+				chrome.runtime.sendMessage({
+					type: 'AsyncUpload',
+					need: 'AsyncUpload',
+					fileBytes: new Uint8Array(arrayBuffer),
+					fileType: file.type,
+					fileName: file.name,
+				}, function(response) {
+					if (response != undefined) {
+						newCb(response, callback);
 					}
-			});			
+				})
+			}
+			fileReader.readAsArrayBuffer(file);		
+			//this.asyncUpload(this.asyncUploadQueue.next(), callback);
+			
+			// chrome.runtime.sendMessage({ need: 'progress_notify',
+			// 		data: {
+			// 				title: 'Uploading: (' + this.asyncUploadQueue.index + '/' + this.asyncUploadQueue.total + ')',
+			// 				progress: 0
+			// 		}
+			// });			
 		}			
 	},
-	
-	
+
+
 	/**
 	 *  Uploads first item from asyncUploadQueue and is called recursively for any remaining files.
+	 * 2021-05 Prevented by CORS, no longer used.   Uploads go through transloader now
 	 */
 	
 	asyncUpload: function(file, callback) {
@@ -671,7 +750,7 @@ var allPages = {
 		
 		var formData = new FormData();
 		formData.append('file', file);
-		
+
 		xhr.onload = () => {
 			if (xhr.status === 200) {
 				
@@ -694,8 +773,8 @@ var allPages = {
 									title: 'Uploading: (' + this.asyncUploadQueue.index + '/' + this.asyncUploadQueue.total + ')',
 									progress: 0
 							}
-					});												
-					
+					});
+
 					this.asyncUpload(this.asyncUploadQueue.next(), callback);
 				}		
 				
