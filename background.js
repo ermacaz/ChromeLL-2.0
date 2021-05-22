@@ -809,6 +809,10 @@ var background = {
 				case "getPaginatedObjectStore":
 					database.getPaginatedObjectStore(request.page, request.type, sendResponse);
 					return true;
+				case 'backGroundUrltoBlob':
+				case "AsyncUpload":
+					// handled in transloader.js
+					return true;
 					
 				default:
 					console.log("Error in request listener - undefined parameter?", request);

@@ -317,10 +317,33 @@ var messageList = {
 			(document.getElementById("message") || document.getElementsByTagName("textarea")[0]).addEventListener("drop", function (e)
 			{
 				new FileReader;
-				for (var t = 0, s = e.dataTransfer.files.length; t < s; t++) allPages.asyncUploadHandler(e.dataTransfer.files[t], function (e)
-				{
-					allPages.insertIntoTextarea(e)
-				});
+				if (e.dataTransfer.files.length > 0) {
+					for (var t = 0, s = e.dataTransfer.files.length; t < s; t++) {
+						allPages.asyncUploadHandler(e.dataTransfer.files[t], function (e) {
+							allPages.insertIntoTextarea(e)
+						});
+					}
+				} else {
+					for(var k = 0; k < e.dataTransfer.items.length; k++) {
+						var item = e.dataTransfer.items[k];
+						if (item.type == "text/uri-list") {
+							item.getAsString(function(data) {
+								chrome.runtime.sendMessage({
+									type: 'backGroundUrltoBlob',
+									need: 'backGroundUrltoBlob',
+									url: data,
+								}, function(response) {
+									var dataview = new DataView(Uint8Array.from(Object.values(response.fileBytes)).buffer);
+									var file = new File([dataview], response.fileType)
+									allPages.asyncUploadHandler(file, function (e) {
+										allPages.insertIntoTextarea(e)
+									});
+								})
+							});
+						}
+						
+					}
+				}
 				e.preventDefault()
 			})
 		},
