@@ -1,5 +1,5 @@
 // Original code by Milan
-const UPLOAD_SIZE_LIMIT = 4000000; // 4MB
+const UPLOAD_SIZE_LIMIT = 4194304; // 4MB
 var MAX_WIDTH  = null;
 var MAX_HEIGHT = null;
 var ENABLE_WIDTH_RESIZE = null;
