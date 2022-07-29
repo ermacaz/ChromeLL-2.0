@@ -174,17 +174,6 @@ var messageList = {
 					}
 				}
 		},
-		foxlinks_quotes: function (e)
-		{
-			if (e = e.getElementsByClassName("quoted-message"))
-				for (var t = "#" + messageList.config.foxlinks_quotes_color, s = 0, n = e.length; s < n; s++)
-				{
-					var a = e[s];
-					a.style.borderStyle = "solid", a.style.borderWidth = "2px", a.style.borderRadius = "5px", a.style.marginRight = "30px", a.style.marginLeft = "10px", a.style.paddingBottom = "10px", a.style.marginTop = "0px", a.style.borderColor = t;
-					var i = a.getElementsByClassName("message-top")[0];
-					i && ("" == i.style.background ? i.style.background = t : a.style.borderColor = i.style.background, i.style.marginTop = "0px", i.style.paddingBottom = "2px", i.style.marginLeft = "-6px")
-				}
-		},
 		label_self_anon: function (e)
 		{
 			if (messageList.tags.includes("Anonymous"))
@@ -1652,6 +1641,48 @@ var messageList = {
 				"A" === n.tagName && this.tags.push(n.innerHTML)
 			}
 	},
+	applyFoxlinksQuotesCss: function (e)
+	{
+		const checkValidColorStr = colorStr => colorStr && (colorStr.length === 3 || colorStr.length === 6);
+		if (e = e.getElementsByClassName("quoted-message"))
+		{
+			const top = document.querySelector(".message-top");
+			if (!top) return;
+
+			// reference to message list config for simpler access
+			const cfg = messageList.config;
+
+			const color = checkValidColorStr(cfg.foxlinks_quotes_custom_color)
+				? `#${cfg.foxlinks_quotes_custom_color}`
+				: getComputedStyle(top).getPropertyValue("background-color");
+			
+			const cssStyle = document.createElement("style");
+
+			// for padding-bottom on .quoted-message and margin-bottom on .quoted-message .message-top,
+			// makes the quote content spaced from the top and bottom of the border equally
+			const quoteContentVerticalPadding = "0.3rem";
+
+			cssStyle.textContent = `
+				.quoted-message {
+					border: ${color} 0.125rem solid;
+					border-radius: 0.3125rem;
+					margin: ${cfg.foxlinks_quotes_margin};
+					padding-bottom: ${quoteContentVerticalPadding};
+				}
+
+				.quoted-message .message-top {
+					background-color: ${color};
+					margin-top: -0.125rem !important;
+					margin-bottom: ${quoteContentVerticalPadding};
+					margin-left: -0.375rem !important;
+					padding-bottom: 0.125rem;
+					border-radius: 0.1875rem 0.1875rem 0 0;
+				}
+			`;
+
+			document.querySelector("head").appendChild(cssStyle);
+		}
+	},
 	applyDomModifications: function (e)
 	{
 		for (var t in this.scrapeTags(), this.config.embed_tweets && this.twitter.injectWidgets(), this.config.dramalinks && !this.config.hide_dramalinks_topiclist && this.appendDramalinksTicker(), this.infobarMethods) this.config[t + e] && this.infobarMethods[t]();
@@ -1659,6 +1690,10 @@ var messageList = {
 		s || this.handleArchivedAndLockedTopics(), this.topicCreator = this.tcs.getTopicCreator();
 		var n = document.getElementsByClassName("message-container");
 		t = 0;
+
+		// do foxlinks quotes if enabled
+		this.config["foxlinks_quotes"] && this.applyFoxlinksQuotesCss(n[t]);
+
 		for (var a = n.length; t < a; t++)
 		{
 			var i = n[t],
