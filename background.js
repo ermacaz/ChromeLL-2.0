@@ -193,7 +193,7 @@ var background = {
 						
 						if (notifId === id && btnIdx === 0) {
 							// link user to topic containing changelog and other info
-							window.open("http://boards.endoftheinter.net/showmessages.php?topic=9458231");
+							window.open("https://boards.endoftheinter.net/showmessages.php?topic=9959136");
 							chrome.notifications.clear(id, null);
 						}
 						
