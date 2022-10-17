@@ -71,6 +71,14 @@ var postMsg = {
 		insQ.addEventListener("click", postMsgHelper.qpTagButton, false);
 		insQ.id = 'quote';
 		insQ.tabIndex = -1;
+		var insN = document.createElement('input');
+		insN.value = 'NWS';
+		insN.name = 'NWS';
+		insN.type = 'button';
+		insN.addEventListener("click", postMsgHelper.qpTagButton, false);
+		insN.id = 'spoiler';
+		insN.attribs = 'caption="nws"';
+		insN.tabIndex = -1;
 		var insS = document.createElement('input');
 		insS.value = 'Spoiler';
 		insS.name = 'Spoiler';
@@ -108,7 +116,8 @@ var postMsg = {
 		insB.tabIndex = -1;
 		tokendesc.insertBefore(insM, tokendesc.nextSibling.lastChild);
 		tokendesc.insertBefore(insQ, insM);
-		tokendesc.insertBefore(insS, insQ);
+		tokendesc.insertBefore(insN, insQ);
+		tokendesc.insertBefore(insS, insN);
 		tokendesc.insertBefore(insP, insS);
 		tokendesc.insertBefore(insU, insP);
 		tokendesc.insertBefore(insI, insU);
@@ -138,6 +147,13 @@ var postMsg = {
 		insQ.type = 'button';
 		insQ.addEventListener("click", postMsgHelper.qpTagButton, false);
 		insQ.id = 'quote';
+		var insN = document.createElement('input');
+		insN.value = 'NWS';
+		insN.name = 'NWS';
+		insN.type = 'button';
+		insN.addEventListener("click", postMsgHelper.qpTagButton, false);
+		insN.id = 'spoiler';
+		insN.attribs = 'caption="nws"';
 		var insS = document.createElement('input');
 		insS.value = 'Spoiler';
 		insS.name = 'Spoiler';
@@ -170,7 +186,8 @@ var postMsg = {
 		insB.id = 'b';
 		m.insertBefore(insM, m.getElementsByTagName('textarea')[0]);
 		m.insertBefore(insQ, insM);
-		m.insertBefore(insS, insQ);
+		m.insertBefore(insN, insQ);
+		m.insertBefore(insS, insN);
 		m.insertBefore(insP, insS);
 		m.insertBefore(insU, insP);
 		m.insertBefore(insI, insU);
@@ -315,6 +332,8 @@ var postMsgHelper = {
 		}
 		// from foxlinks
 		var tag = e.target.id;
+		var tagAttribs = e.target.attribs ? ` ${e.target.attribs}` : undefined;
+		var attribsLength = tagAttribs ? tagAttribs.length : 0;
 		var open = new RegExp("\\*", "m");
 		var ta = document.getElementById('message');
 		var st = ta.scrollTop;
@@ -329,15 +348,15 @@ var postMsgHelper = {
 				ta.value = before + "</" + tag + ">" + after;
 			} else {
 				e.target.value = e.target.name + "*";
-				var focusPoint = ta.selectionStart + tag.length + 2;
-				ta.value = before + "<" + tag + ">" + after;
+				var focusPoint = ta.selectionStart + tag.length + attribsLength + 2;
+				ta.value = before + "<" + tag + (tagAttribs ? tagAttribs : '') + ">" + after;
 			}
 
 			ta.selectionStart = focusPoint;
 		} else {
-			var focusPoint = ta.selectionStart + (tag.length * 2)
+			var focusPoint = ta.selectionStart + (tag.length * 2) + attribsLength
 					+ select.length + 5;
-			ta.value = before + "<" + tag + ">" + select + "</" + tag + ">"
+			ta.value = before + "<" + tag + (tagAttribs ? tagAttribs : '') + ">" + select + "</" + tag + ">"
 					+ after;
 			ta.selectionStart = before.length;
 		}

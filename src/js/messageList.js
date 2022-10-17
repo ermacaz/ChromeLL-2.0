@@ -290,6 +290,8 @@ var messageList = {
 			t.value = "Mod", t.name = "Mod", t.type = "button", t.id = "mod", t.addEventListener("click", messageList.qpTagButton, !1);
 			var s = document.createElement("input");
 			s.value = "Admin", s.name = "Admin", s.type = "button", s.addEventListener("click", messageList.qpTagButton, !1), s.id = "adm", (s = document.createElement("input")).value = "Quote", s.name = "Quote", s.type = "button", s.addEventListener("click", messageList.qpTagButton, !1), s.id = "quote";
+			var nwsButton = document.createElement("input");
+			nwsButton.value = "NWS", nwsButton.name = "NWS", nwsButton.attribs='caption="nws"', nwsButton.type = "button", nwsButton.addEventListener("click", messageList.qpTagButton, !1), nwsButton.id = "spoiler";
 			var n = document.createElement("input");
 			n.value = "Spoiler", n.name = "Spoiler", n.type = "button", n.addEventListener("click", messageList.qpTagButton, !1), n.id = "spoiler";
 			var a = document.createElement("input");
@@ -299,7 +301,7 @@ var messageList = {
 			var o = document.createElement("input");
 			o.value = "Italic", o.name = "Italic", o.type = "button", o.addEventListener("click", messageList.qpTagButton, !1), o.id = "i";
 			var r = document.createElement("input");
-			r.value = "Bold", r.name = "Bold", r.type = "button", r.addEventListener("click", messageList.qpTagButton, !1), r.id = "b", e.insertBefore(t, e.getElementsByTagName("textarea")[0]), e.insertBefore(s, t), e.insertBefore(n, s), e.insertBefore(a, n), e.insertBefore(i, a), e.insertBefore(o, i), e.insertBefore(r, o), e.insertBefore(document.createElement("br"), r)
+			r.value = "Bold", r.name = "Bold", r.type = "button", r.addEventListener("click", messageList.qpTagButton, !1), r.id = "b", e.insertBefore(t, e.getElementsByTagName("textarea")[0]), e.insertBefore(s, t), e.insertBefore(nwsButton, s), e.insertBefore(n, nwsButton), e.insertBefore(a, n), e.insertBefore(i, a), e.insertBefore(o, i), e.insertBefore(r, o), e.insertBefore(document.createElement("br"), r)
 		},
 		drop_batch_uploader: function ()
 		{
@@ -1556,7 +1558,27 @@ var messageList = {
 			a = s.value.substring(0, s.selectionStart),
 			i = s.value.substring(s.selectionEnd, s.value.length),
 			o = s.value.substring(s.selectionStart, s.selectionEnd);
-		s.selectionStart == s.selectionEnd ? (/\*/m.test(e.target.value) ? (e.target.value = e.target.name, e = s.selectionStart + t.length + 3, s.value = a + "</" + t + ">" + i) : (e.target.value = e.target.name + "*", e = s.selectionStart + t.length + 2, s.value = a + "<" + t + ">" + i), s.selectionStart = e) : (e = s.selectionStart + 2 * t.length + o.length + 5, s.value = a + "<" + t + ">" + o + "</" + t + ">" + i, s.selectionStart = a.length), s.selectionEnd = e, s.scrollTop = n, s.focus()
+		var tagAttribs = e.target.attribs ? ` ${e.target.attribs}` : undefined;
+		var attribsLength = tagAttribs ? tagAttribs.length : 0;
+		if (s.selectionStart == s.selectionEnd) {
+			if (/\*/m.test(e.target.value)) {
+				e.target.value = e.target.name;
+				e = s.selectionStart + t.length + 3;
+				s.value = a + "</" + t + ">" + i;
+			} else {
+				e.target.value = e.target.name + "*";
+				e = s.selectionStart + t.length + attribsLength + 2;
+				s.value = a + "<" + t + (tagAttribs ? tagAttribs : '') + ">" + i;
+			}
+			s.selectionStart = e;
+		} else {
+			e = s.selectionStart + 2 * t.length + o.length + attribsLength + 5;
+			s.value = a + "<" + t + (tagAttribs ? tagAttribs : '') + ">" + o + "</" + t + ">" + i;
+			s.selectionStart = a.length;
+		}
+		s.selectionEnd = e;
+		s.scrollTop = n;
+		s.focus();
 	},
 	addListeners: function (e)
 	{
