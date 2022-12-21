@@ -567,6 +567,8 @@ var messageList = {
 				return this.archiveQuotes.handler(e), void e.preventDefault();
 			case "youtube":
 				return void("DIV" === e.target.tagName ? e.preventDefault() : this.youtube.hideEmbedLink());
+			case "streamable":
+				return void("DIV" === e.target.tagName ? e.preventDefault() : this.streamable.hideEmbedLink());
 			case "embed_nws_gfy":
 				return t = e.target.parentNode.id.replace("_embed", ""), this.gfycat.embed(document.getElementById(t)), void e.preventDefault();
 			case "embed_nws_imgur":
@@ -574,8 +576,12 @@ var messageList = {
 				break;
 			case "embed":
 				return this.youtube.embed(e.target.parentNode), void e.preventDefault();
+			case "embedStreamable":
+				return this.streamable.embed(e.target.parentNode),this.streamable.hideEmbedLink(), void e.preventDefault();
 			case "hide":
 				return this.youtube.hide(e.target.parentNode), this.youtube.hideEmbedLink(), void e.preventDefault();
+			case "hideStreamable":
+				return this.streamable.hide(e.target.parentNode), this.streamable.hideEmbedLink(), void e.preventDefault();
 			case "embed_tweet":
 				return this.twitter.embed(e.target.parentNode), void e.preventDefault();
 			case "emoji_type":
@@ -597,12 +603,14 @@ var messageList = {
 				break;
 			case "youtube":
 				this.youtube.debouncerId = setTimeout(this.youtube.showEmbedLink.bind(this.youtube, e), 400)
+			case "streamable":
+				this.streamable.debouncerId = setTimeout(this.streamable.showEmbedLink.bind(this.streamable, e), 400)
 			}
 			e.target.className && e.target.classList.contains("nws_gfycat") ? this.gfycat.debouncerId = setTimeout(this.gfycat.showEmbedLink.bind(this.gfycat, e), 400) : e.target.className && e.target.classList.contains("nws_imgur") ? this.imgur.debouncerId = setTimeout(this.imgur.showEmbedLink.bind(this.imgur, e), 400) : e.target.className && e.target.classList.contains("click_embed_tweet") && (this.twitter.debouncerId = setTimeout(this.twitter.showEmbedLink.bind(this.twitter, e), 400))
 		},
 		mouseleave: function (e)
 		{
-			clearTimeout(this.youtube.debouncerId), clearTimeout(this.gfycat.debouncerId), clearTimeout(this.imgur.debouncerId), clearTimeout(this.twitter.debouncerId), clearTimeout(this.menuDebouncer), clearTimeout(this.popupDebouncer), document.getElementById("hold_menu") ? (this.likeButton.hideOptions(), e.preventDefault()) : "youtube" === e.target.className ? this.youtube.hideEmbedLink() : "nws_gfycat" === e.target.className ? this.gfycat.hideEmbedLink() : e.target.classList.contains("nws_imgur") ? this.imgur.hideEmbedLink() : e.target.classList.contains("click_embed_tweet") && this.twitter.hideEmbedLink()
+			clearTimeout(this.youtube.debouncerId), clearTimeout(this.streamable.debouncerId), clearTimeout(this.gfycat.debouncerId), clearTimeout(this.imgur.debouncerId), clearTimeout(this.twitter.debouncerId), clearTimeout(this.menuDebouncer), clearTimeout(this.popupDebouncer), document.getElementById("hold_menu") ? (this.likeButton.hideOptions(), e.preventDefault()) : "youtube" === e.target.className ? this.youtube.hideEmbedLink() : "streamable" === e.target.className ? this.streamable.hideEmbedLink() : "nws_gfycat" === e.target.className ? this.gfycat.hideEmbedLink() : e.target.classList.contains("nws_imgur") ? this.imgur.hideEmbedLink() : e.target.classList.contains("click_embed_tweet") && this.twitter.hideEmbedLink()
 		},
 		keydown: function (e)
 		{
@@ -988,6 +996,47 @@ var messageList = {
 			e.className = "youtube"
 		}
 	},
+	streamable:
+	{
+		debouncerId: "",
+		showEmbedLink: function (e)
+		{
+			e = e.target;
+			var t = document.createElement("span");
+			t.id = e.id, t.className = "embedStreamable", t.style.backgroundColor = window.getComputedStyle(document.getElementsByClassName("message")[0]).backgroundColor, t.style.display = "inline", t.style.position = "absolute", t.style.zIndex = 1, t.style.fontWeight = "bold", t.style.textDecoration = "underline", t.style.cursor = "pointer", t.innerHTML = "&nbsp[Embed]", e.appendChild(t)
+		},
+		hideEmbedLink: function ()
+		{
+			if (0 < document.getElementsByClassName("embedStreamable").length)
+			{
+				var e = document.getElementsByClassName("embedStreamable")[0];
+				e.parentNode.removeChild(e)
+			}
+			else 0 < document.getElementsByClassName("hideStreamable").length && (e = document.getElementsByClassName("hideStreamable")[0]).parentNode.removeChild(e)
+		},
+		embed: function (e)
+		{
+			var t, s, n = document.getElementById(e.id),
+				a = window.getComputedStyle(document.getElementsByClassName("message")[0]).backgroundColor,
+				i = (t = n.href).match(/(\?|\&|#)(t=)/);
+			i && (s = t.substring(i.index, t.length).match(/([0-9])+([h|m|s])?/g)), t = (t = e.id.match(/streamable.com\/(.*).*/)) && t[1], s && this.hideEmbedLink(), n.className = "hideme", n.appendChild(this.createStreamableElements(e.id, t, a))
+		},
+	
+		createStreamableElements: function (e, t, s)
+		{
+			var n = document.createElement("span");
+			n.style.display = "inline", n.style.position = "absolute", n.style.backgroundColor = s, n.style.fontWeight = "bold", n.style.textDecoration = "underline", n.style.cursor = "pointer", n.style.zIndex = 1, n.className = "hide", n.id = e, n.innerHTML = "&nbsp[Hide]", s = document.createElement("br");
+			var a = document.createElement("div");
+			a.className = "streamable";
+			var i = document.createElement("iframe");
+			return i.id = "st" + e, i.src = "https://www.streamable.com/e/" + t, i.setAttribute("type", "text/html"), i.setAttribute("width", 640), i.setAttribute("height", 390), i.setAttribute("autoplay", 0), i.setAttribute("frameborder", 0), i.setAttribute("allowfullscreen", "allowfullscreen"), e = document.createDocumentFragment(), a.appendChild(i), e.appendChild(n), e.appendChild(s), e.appendChild(a), e
+		},
+		hide: function (e)
+		{
+			for (var t, s = (e = document.getElementById(e.id)).childNodes.length; s--;) "#text" !== (t = e.childNodes[s]).nodeName && "SPAN" !== t.tagName && e.removeChild(t);
+			e.className = "streamable"
+		}
+	},
 	snippet:
 	{
 		handler: function (e, t)
@@ -1205,6 +1254,11 @@ var messageList = {
 						o.className = "youtube";
 						o.id = o.href + "&" + this.uniqueIndex;
 						this.uniqueIndex++;
+						o.addEventListener("mouseenter", messageList.handleEvent.mouseenter.bind(messageList));
+						o.addEventListener("mouseleave", messageList.handleEvent.mouseleave.bind(messageList));
+					} else if ( /streamable/.test(o.href)) {
+						o.className = "streamable";
+						o.id = o.href;
 						o.addEventListener("mouseenter", messageList.handleEvent.mouseenter.bind(messageList));
 						o.addEventListener("mouseleave", messageList.handleEvent.mouseleave.bind(messageList));
 					} else if (messageList.config.embed_gfycat && -1 < o.href.indexOf("gfycat.com/")) {
