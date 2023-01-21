@@ -58,6 +58,30 @@ $jscomp.defineProperty = "function" == typeof Object.defineProperties ? Object.d
 		return $jscomp.findInternal(this, e, t).v
 	}
 }, "es6-impl", "es3");
+
+const retry = async (fn, maxAttempts) => {
+  const execute = async (attempt) => {
+    try {
+        return await fn()
+    } catch (err) {
+        if (attempt <= maxAttempts) {
+            const nextAttempt = attempt + 1
+            const delayInSeconds = Math.max(Math.min(Math.pow(2, nextAttempt)
+              + randInt(-nextAttempt, nextAttempt), 600), 1)
+            console.error(`Retrying after ${delayInSeconds} seconds due to:`, err)
+            return delay(() => execute(nextAttempt), delayInSeconds * 1000)
+        } else {
+            throw err
+        }
+    }
+  }
+  return execute(1)
+}
+
+const delay = (fn, ms) => new Promise((resolve) => setTimeout(() => resolve(fn()), ms))
+
+const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1) + min)
+
 var messageList = {
 	config: [],
 	ignoredUsers: [],
@@ -613,14 +637,18 @@ var messageList = {
 	},
 	mediaLoader: function ()
 	{
-		for (var e = document.getElementsByClassName("media"), t = window.innerHeight, s = [], n = 0, a = e.length; n < a; n++)
-		{
-			var i = e[n],
-				o = i.getBoundingClientRect(),
-				r = i.getAttribute("name");
-			o.top > t + 200 || o.bottom < 0 ? "embedded" != r && "embedded_thumb" != r || i.getElementsByTagName("video")[0].paused || i.getElementsByTagName("video")[0].pause() : "A" == i.tagName ? (messageList.preventSigEmbeds(i), i.classList.contains("gfycat") ? messageList.gfycat.checkLink(i) : i.classList.contains("imgur") ? messageList.imgur.checkLink(i) : i.classList.contains("twitter") ? messageList.twitter.checkLink(i) : i.classList.contains("ignore") && s.push(i)) : "placeholder" == r ? i.classList.contains("gfycat") ? messageList.gfycat.embed(i) : i.classList.contains("imgur") && messageList.imgur.embed(i) : "embedded" == r && i.getElementsByTagName("video")[0].paused && i.getElementsByTagName("video")[0].play()
-		}
-		for (n = 0, a = s.length; n < a; n++) s[n].className = "l"
+		const loadMedia = function () {
+			for (var e = document.getElementsByClassName("media"), t = window.innerHeight, s = [], n = 0, a = e.length; n < a; n++)
+			{
+				var i = e[n],
+					o = i.getBoundingClientRect(),
+					r = i.getAttribute("name");
+				o.top > t + 200 || o.bottom < 0 ? "embedded" != r && "embedded_thumb" != r || i.getElementsByTagName("video")[0].paused || i.getElementsByTagName("video")[0].pause() : "A" == i.tagName ? (messageList.preventSigEmbeds(i), i.classList.contains("gfycat") ? messageList.gfycat.checkLink(i) : i.classList.contains("imgur") ? messageList.imgur.checkLink(i) : i.classList.contains("twitter") ? messageList.twitter.checkLink(i) : i.classList.contains("ignore") && s.push(i)) : "placeholder" == r ? i.classList.contains("gfycat") ? messageList.gfycat.embed(i) : i.classList.contains("imgur") && messageList.imgur.embed(i) : "embedded" == r && i.getElementsByTagName("video")[0].paused && i.getElementsByTagName("video")[0].play()
+			}
+			for (n = 0, a = s.length; n < a; n++) s[n].className = "l"
+		};
+
+		retry(loadMedia, 5);
 	},
 	mediaPauser: function ()
 	{
@@ -877,22 +905,6 @@ var messageList = {
 	twitter:
 	{
 		debouncerId: 0,
-		injectWidgets: function ()
-		{
-			var e = document.createElement("script");
-			e.src = chrome.extension.getURL("/lib/widgets.js"), e.onload = function ()
-			{
-				this.remove()
-			}, document.head.appendChild(e)
-		},
-		injectLoadScript: function (e)
-		{
-			var t = document.createElement("script");
-			t.innerHTML = 'if (window.twttr) { twttr.widgets.load(document.getElementById("' + e + '")) };', t.onload = function ()
-			{
-				this.remove()
-			}, document.head.appendChild(t)
-		},
 		showEmbedLink: function (e)
 		{
 			e = e.target;
@@ -911,35 +923,21 @@ var messageList = {
 		{
 			e.classList.contains("checked") || (e.classList.contains("click_embed_tweet") ? (e.addEventListener("mouseenter", messageList.handleEvent.mouseenter.bind(messageList)), e.addEventListener("mouseleave", messageList.handleEvent.mouseleave.bind(messageList))) : this.embed(e), e.classList.add("checked"))
 		},
-		postContainsNsfw: function (e)
+		embed: function (e)
 		{
-			return !(!messageList.tags.includes("NWS") && !messageList.tags.includes("NLS")) || ("spoiler_on_open" === e.parentNode.className ? /(n(\s*?)[wl](\s*?)s)/i.test(e.parentNode.parentNode.parentNode.innerHTML) : /(n(\s*?)[wl](\s*?)s)/i.test(e.parentNode.innerHTML))
+			var n = document.createElement("iframe");
+			n.id = e.id;
+			n.setAttribute("data-s9e-mediaembed", "twitter");
+			n.allow = "autoplay *";
+			n.allowFullscreen = "";
+			n.setAttribute("scrolling", "no");
+			n.src = `https://s9e.github.io/iframe/2/twitter.min.html#${e.href.match(/status\/(\d+)/)[1]}${messageList.config.dark_tweets ? "d" : ""}`;
+			n.style = "background:url(https://abs.twimg.com/favicons/favicon.ico) no-repeat 50% 50%;border:0;height:250px;max-width:500px;width:100%";
+			n.setAttribute("onload", "var c=new MessageChannel;c.port1.onmessage=function(e){style.height=e.data+'px'};contentWindow.postMessage('s9e:init','https://s9e.github.io',[c.port2])");
+			e.parentNode.insertBefore(n, e);
+			e.className = "l";
+			e.style.display = "none";
 		},
-		checkHideMedia: function (e)
-		{
-			return messageList.config.hide_tweet_media || messageList.config.hide_nws_tweets && this.postContainsNsfw(e)
-		},
-		getEmbedUrl: function (e)
-		{
-			return "https://publish.twitter.com/oembed?url=" + encodeURIComponent(e.href) + "&omit_script=true&theme=" + (messageList.config.dark_tweets ? "dark" : "light") + "&hide_media=" + (this.checkHideMedia(e) ? "true" : "false")
-		},
-		embed: function (t)
-		{
-			var s = this;
-			chrome.runtime.sendMessage(
-			{
-				need: "xhr",
-				url: this.getEmbedUrl(t)
-			}, function (e)
-			{
-				e = JSON.parse(e), s.reallyEmbed(t, s, e)
-			})
-		},
-		reallyEmbed: function (e, t, s)
-		{
-			var n = document.createElement("div");
-			n.className = "embedded_tweet", n.innerHTML = s.html, n.id = e.id, e.parentNode.insertBefore(n, e), e.className = "l", e.style.display = "none", t.injectLoadScript(n.id)
-		}
 	},
 	youtube:
 	{
@@ -1738,7 +1736,7 @@ var messageList = {
 	},
 	applyDomModifications: function (e)
 	{
-		for (var t in this.scrapeTags(), this.config.embed_tweets && this.twitter.injectWidgets(), this.config.dramalinks && !this.config.hide_dramalinks_topiclist && this.appendDramalinksTicker(), this.infobarMethods) this.config[t + e] && this.infobarMethods[t]();
+		for (var t in this.scrapeTags(), this.config.dramalinks && !this.config.hide_dramalinks_topiclist && this.appendDramalinksTicker(), this.infobarMethods) this.config[t + e] && this.infobarMethods[t]();
 		var s = 0 < document.getElementsByClassName("quickpost").length;
 		s || this.handleArchivedAndLockedTopics(), this.topicCreator = this.tcs.getTopicCreator();
 		var n = document.getElementsByClassName("message-container");
