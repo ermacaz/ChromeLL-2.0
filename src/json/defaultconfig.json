@@ -70,6 +70,7 @@
 	"hide_nws_gfycat":false,
 	"resize_gfys":true,
 	"gfy_max_width":1440,
+	"embed_streamables":true,
 	"user_notes":true,
 	"usernote_notes":{},
 	"ignorator_messagelist":false,

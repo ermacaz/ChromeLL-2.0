@@ -1256,7 +1256,7 @@ var messageList = {
 						this.uniqueIndex++;
 						o.addEventListener("mouseenter", messageList.handleEvent.mouseenter.bind(messageList));
 						o.addEventListener("mouseleave", messageList.handleEvent.mouseleave.bind(messageList));
-					} else if ( /streamable/.test(o.href)) {
+					} else if (messageList.config.embed_streamables && /streamable/.test(o.href)) {
 						o.className = "streamable";
 						o.id = o.href;
 						o.addEventListener("mouseenter", messageList.handleEvent.mouseenter.bind(messageList));
@@ -1283,7 +1283,7 @@ var messageList = {
 						}
 					}
 
-					if( messageList.config.embed_youtube && (a.test(o.href) && i.test(o.href)) && ("quoted-message" != o.parentNode.className)) {
+					if(messageList.config.embed_youtube && (a.test(o.href) && i.test(o.href)) && ("quoted-message" != o.parentNode.className)) {
 						messageText = o.parentElement.textContent;
 						linkText = o.textContent.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
 						theRegex = `---\n((.|\n)*)?${linkText}`;
