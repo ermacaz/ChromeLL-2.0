@@ -1646,7 +1646,7 @@ var messageList = {
 		if (messageList.config.post_templates)
 		{
 			var t = document.createElement("script");
-			t.type = "text/javascript", t.src = chrome.extension.getURL("src/js/topicPostTemplate.js"), e.appendChild(t)
+			t.type = "text/javascript", t.src = chrome.runtime.getURL("src/js/topicPostTemplate.js"), e.appendChild(t)
 		}
 	},
 	sendMessage: function (t, e)

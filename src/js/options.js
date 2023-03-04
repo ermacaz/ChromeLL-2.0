@@ -1328,7 +1328,7 @@ var options = {
 		}
 	},
 	getDefault: function(callback) {
-		var defaultURL = chrome.extension.getURL('/src/json/defaultconfig.json');
+		var defaultURL = chrome.runtime.getURL('/src/json/defaultconfig.json');
 		var temp, defaultConfig;
 		var xhr = new XMLHttpRequest();
 		xhr.open("GET", defaultURL, true);

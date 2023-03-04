@@ -54,7 +54,7 @@ var allPages = {
 				dialog.style.borderRadius = '6px';
 				dialog.style.boxShadow = '0 3px 7px rgba(0, 0, 0, 0.3)';
 				
-				dialog.style.backgroundImage = "url('" + chrome.extension.getURL('/src/images/popup.png') + "')";
+				dialog.style.backgroundImage = "url('" + chrome.runtime.getURL('/src/images/popup.png') + "')";
 				dialog.style.backgroundColor = 'white';
 				dialog.style.backgroundRepeat = 'no-repeat';
 				dialog.style.backgroundPosition = 'center bottom';
@@ -588,7 +588,7 @@ var allPages = {
 	},
 	optionsMenu: {
 		show: function() {
-			var url = chrome.extension.getURL('options.html');
+			var url = chrome.runtime.getURL('options.html');
 			var div = document.createElement('div');
 			var iframe = document.createElement('iframe');
 			var width = window.innerWidth;

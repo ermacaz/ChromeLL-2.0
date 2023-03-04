@@ -102,41 +102,45 @@ var background = {
 	},
 	
 	getDefaultConfig: function(callback) {
-		var defaultURL = chrome.extension.getURL('/src/json/defaultconfig.json');
-		var xhr = new XMLHttpRequest();
-		xhr.open("GET", defaultURL, true);
-		xhr.onload = function() {
-			if (this.status == 200) {
-				callback(JSON.parse(this.responseText));
+		var defaultURL = chrome.runtime.getURL('/src/json/defaultconfig.json');
+		fetch(defaultURL).then(response => {
+			if (response.ok) {
+				response.json();
+			} else {
+				throw new Error(`HTTP error reading defaultconfig, status = ${response.status}`)
 			}
-		};
-		xhr.send();
+		}).then(function(json) {
+			callback(json)
+		}).catch(error => {
+			console.log(error);
+		})
 	},
 	
 	updateConfig: function(defaultConfig) {
-		if (localStorage['ChromeLL-Config'] === undefined) {
-			localStorage['ChromeLL-Config'] = JSON.stringify(defaultConfig);
-			background.config = defaultConfig;
-		}
-		
-		else {
-			background.config = JSON.parse(localStorage['ChromeLL-Config']);
-			
-			for (var i in defaultConfig) {
-				// if this variable does not exist, set it to the default
-				if (background.config[i] === undefined) {
-					background.config[i] = defaultConfig[i];
-					if (background.config.debug) {
-						console.log("upgrade diff!", i, background.config[i]);
+		chrome.storage.local.get("ChromeLL-Config", (obj) => {
+			if (Object.keys(obj).length === 0) {
+				chrome.storage.local.set({"ChromeLL-Config": JSON.stringify(defaultConfig)})
+				background.config = defaultConfig;
+			} else {
+				background.config = JSON.parse(obj["ChromeLL-Config"]);
+				for (var i in defaultConfig) {
+					// if this variable does not exist, set it to the default
+					if (background.config[i] === undefined) {
+						background.config[i] = defaultConfig[i];
+						if (background.config.debug) {
+							console.log("upgrade diff!", i, background.config[i]);
+						}
 					}
 				}
-			}		
-		}		
+			}
+		})
 		
-		if (localStorage['ChromeLL-TCs'] == undefined) {
-			localStorage['ChromeLL-TCs'] = "{}";
-		}
-		
+		chrome.storage.local.get("ChromeLL-TCs", (obj) => {
+			if (Object.keys(obj).length === 0) {
+				chrome.storage.local.set({"ChromeLL-TCs": "{}"});
+			}
+		})
+	
 		// beta versions stored TC cache in the global config. Delete if found
 		if (background.config.tcs) {
 			delete background.config.tcs;
@@ -153,64 +157,61 @@ var background = {
 		if (this.config.image_cache_version === 1) {			
 			database.open(database.convertCache);
 			background.config.image_cache_version = 2;
-			localStorage['ChromeLL-Config'] = JSON.stringify(background.config);	
+			chrome.storage.local.set({'ChromeLL-Config': JSON.stringify(background.config)})
 		}
 				
 		// Create lightweight version of existing database for search purposes
 		if (this.config.image_cache_version === 2) {			
 			database.open(database.populateSearchObjectStore);
 			background.config.image_cache_version = 3;
-			localStorage['ChromeLL-Config'] = JSON.stringify(background.config);
+			chrome.storage.local.set({'ChromeLL-Config': JSON.stringify(background.config)});
 		}				
 		
 		else {		
 			// save the config, in case it was updated
-			localStorage['ChromeLL-Config'] = JSON.stringify(background.config);
+			chrome.storage.local.set({'ChromeLL-Config': JSON.stringify(background.config)});
 		}
 	},
 	
 	checkVersion: function() {
 		var manifest = chrome.runtime.getManifest();
 		// notify user if chromeLL has been updated
-		if (localStorage['ChromeLL-Version'] != manifest.version 
-				&& localStorage['ChromeLL-Version'] != undefined 
-				&& this.config.sys_notifications) {
-					
-			chrome.notifications.create('popup', {
-				
-					type: "basic",
-					title: "ChromeLL has been updated",
-					message: "Old v: " + localStorage['ChromeLL-Version'] 
+		chrome.storage.local.get("ChromeLL-Version", (obj) => {
+			if (obj["ChromeLL-Version"] != manifest.version 
+				&& Object.keys(obj).length !== 0
+			  && this.config.sys_notificaitions) {
+					chrome.notifications.create('popup', {
+						type: "basic",
+						title: "ChromeLL has been updated",
+						message: "Old v: " + obj["ChromeLL-Version"]
 							+ ", New v: " + manifest.version,
-					buttons: [{
-						title: "Click for more info",
-					}],
-					iconUrl: "src/images/lueshi_48.png"
-					
-				}, (id) => {
-					
-					chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
+						buttons: [{
+							title: "Click for more info",
+						}],
+						iconUrl: "src/images/lueshi_48.png"
 						
-						if (notifId === id && btnIdx === 0) {
-							// link user to topic containing changelog and other info
-							window.open("https://boards.endoftheinter.net/showmessages.php?topic=9959136");
+					}, (id) => {
+						
+						chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
+							
+							if (notifId === id && btnIdx === 0) {
+								// link user to topic containing changelog and other info
+								window.open("https://boards.endoftheinter.net/showmessages.php?topic=9959136");
+								chrome.notifications.clear(id, null);
+							}
+							
+						});
+						
+						setTimeout(function() {
 							chrome.notifications.clear(id, null);
-						}
-						
-					});
-					
-					setTimeout(function() {
-						chrome.notifications.clear(id, null);
-					}, 5000);
-				}
-			);
-			
-			localStorage['ChromeLL-Version'] = manifest.version;
-		}
-
-		if (localStorage['ChromeLL-Version'] == undefined) {
-			localStorage['ChromeLL-Version'] = manifest.version;
-		}
+						}, 5000);
+					}
+				);
+				chrome.storage.local.set({"ChromeLL-Version": manifest.version})
+			} else if (Object.keys(obj).length === 0) {
+				chrome.storage.local.set({"ChromeLL-Version": manifest.version})
+			}
+		})
 	},
 	
 	checkSync: function() {
@@ -220,7 +221,7 @@ var background = {
 				for (var keyName in syncData.config) {					
 					background.config[keyName] = syncData.config[keyName];					
 				}
-				localStorage['ChromeLL-Config'] = JSON.stringify(background.config);
+				chrome.storage.local.set({'ChromeLL-Config': JSON.stringify(background.config)});
 				var bSplit = [];
 				for (var k in split) {
 					if (background.config[split[k]]) {
@@ -231,41 +232,43 @@ var background = {
 					for (var l in syncConfig) {
 						background.config[l] = syncConfig[l];
 					}
-					localStorage['ChromeLL-Config'] = JSON.stringify(background.config);
+					chrome.storage.local.set({'ChromeLL-Config': JSON.stringify(background.config)});
 				});
 			}
 			
 			else if (!syncData.config || syncData.config.last_saved < background.config.last_saved) {
-				var localConfig = JSON.parse(localStorage['ChromeLL-Config']);
-				var toSet = {};
-				for (var i in split) {
-					if (background.config[split[i]]) {
-						toSet[i] = localConfig[i];
+				chrome.storage.local.get("ChromeLL-Config", function(obj) {
+					var localConfig = obj['ChromeLL-Config'];
+					var toSet = {};
+					for (var i in split) {
+						if (background.config[split[i]]) {
+							toSet[i] = localConfig[i];
+						}
+						delete localConfig[i];
 					}
-					delete localConfig[i];
-				}
-				toSet.config = localConfig;
-				for (var i in toSet) {
-					var f = function(v) {
-						chrome.storage.sync.getBytesInUse(v, function(use) {
-							// chrome.storage api allows 8,192 bytes per item
-							if (use > 8192) {
-								var sp = Math.ceil(use / 8192);
-								var c = 0;
-								for (var j in toSet[v]) {
-									if (!toSet[v + (c % sp)]) {
-										toSet[v + (c % sp)] = {};
+					toSet.config = localConfig;
+					for (var i in toSet) {
+						var f = function(v) {
+							chrome.storage.sync.getBytesInUse(v, function(use) {
+								// chrome.storage api allows 8,192 bytes per item
+								if (use > 8192) {
+									var sp = Math.ceil(use / 8192);
+									var c = 0;
+									for (var j in toSet[v]) {
+										if (!toSet[v + (c % sp)]) {
+											toSet[v + (c % sp)] = {};
+										}
+										toSet[v + (c % sp)][j] = toSet[v][j];
+										c++;
 									}
-									toSet[v + (c % sp)][j] = toSet[v][j];
-									c++;
+									delete toSet[v];
 								}
-								delete toSet[v];
-							}
-						});
+							});
+						}
+						f(i);
 					}
-					f(i);
-				}
-				chrome.storage.sync.set(toSet);				
+					chrome.storage.sync.set(toSet);
+				})
 			}
 		});
 	},
@@ -381,7 +384,7 @@ var background = {
 				}
 			}
 			else {
-			  url = url.replace("%extension%", chrome.extension.getURL("/"));
+			  url = url.replace("%extension%", chrome.runtime.getURL("/"));
 			}
 			
 			chrome.tabs.create({
@@ -627,7 +630,7 @@ var background = {
 					} else {
 						background.config[request.name] = request.data;
 						background.config.last_saved = new Date().getTime();
-						localStorage['ChromeLL-Config'] = JSON.stringify(background.config);
+						chrome.storage.local.set({'ChromeLL-Config': JSON.stringify(background.config)});
 					}
 					if (background.config.debug) {
 						console.log('saving ', request.name, request.data);

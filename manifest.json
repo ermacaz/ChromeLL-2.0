@@ -16,7 +16,7 @@
  	"48": "src/images/lueshi_48.png",
 	"128":	"src/images/lueshi_128.png"
   },
-  "browser_action": {
+  "action": {
     "default_icon": "src/images/lueshi.png",
     "default_title": "ChromeLL",
     "default_popup": "src/html/popup.html"
@@ -76,5 +76,6 @@
 		"run_at": "document_end"
 	}],
 
-  "permissions": [ "tabs", "clipboardWrite", "notifications", "http://*/*", "https://*/*", "contextMenus", "webRequest", "webRequestBlocking", "storage", "unlimitedStorage"]
+  "permissions": [ "tabs", "clipboardWrite", "notifications", "contextMenus", "webRequest", "declarativeNetRequest", "storage", "unlimitedStorage"],
+  "host_permissions": ["http://*/*", "https://*/*"]
 }
