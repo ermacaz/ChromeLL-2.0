@@ -396,49 +396,27 @@ var background = {
 	getDrama: function(callback) {
 		const DRAMALINKS_RAW_URL = 'https://wiki.endoftheinter.net/index.php?title=Dramalinks/current&action=raw&section=0&maxage=30';
 		
-		var xhr = new XMLHttpRequest();
-		xhr.open("GET", DRAMALINKS_RAW_URL, true);
-		xhr.withCredentials = "true";
-		
-		xhr.onload = function() {
-			switch (this.status) {
-				case 200:
-					// Make sure that user was logged in & not redirected
-					if (this.responseURL === DRAMALINKS_RAW_URL) {
-						var scrapedData = background.scrapeDramalinks(this.responseText);
-						background.drama.txt = background.buildDramalinksHtml(scrapedData.bgcol, scrapedData.stories);
-						background.drama.time = parseInt(new Date().getTime() + (1800 * 1000));						
-					}
-					else {
-						// If we have old drama to display, use that. Otherwise display error message
-						if (!background.drama.txt) {
-							background.drama.txt = 'Error while loading dramalinks';
-						}
-					}
-					break;
-					
-				case 404:
-					// 10th August 2017 update - seems like Llamaguy fixed the broken redirect. Leaving just in case
-					
-					// Usually indicates that user was not logged in. The wiki website redirects to the login page on the old ETI domain (luelinks.net), 
-					// and the r query parameter contains the URL encoded to base64. As the luelinks.net domain isn't active anymore, we get a 404.
-					if (!background.drama.txt) {
-						background.drama.txt = 'Error while loading dramalinks';
-					}
-					break;
-					
-				default:
-					console.log('Unexpected HTTP status code in dramalinks XHR: ' + this.status);
-					console.log(this);
-					break;
-			};
-			
+		fetch(DRAMALINKS_RAW_URL, {credentials: "include"}).then(response => {
+			if (response.ok) {
+				response.text();
+			} else {
+				throw new Error("cannot read dramalinks")
+			}
+		}).then(responseText => {
+			var scrapedData = background.scrapeDramalinks(responseText);
+			background.drama.txt = background.buildDramalinksHtml(scrapedData.bgcol, scrapedData.stories);
+			background.drama.time = parseInt(new Date().getTime() + (1800 * 1000));
 			if (callback) {
 				callback(background.drama);
-			}			
-		};
-		
-		xhr.send();
+			}
+		}).catch(error => {
+			if (!background.drama.txt) {
+				background.drama.txt = 'Error while loading dramalinks';
+			}
+			if (callback) {
+				callback(background.drama);
+			}
+		})
 	},
 	
 	buildDramalinksHtml: function(level, stories) {
@@ -612,21 +590,25 @@ var background = {
 				
 				case "config":
 					// page script needs extension config.
-					background.config = JSON.parse(localStorage['ChromeLL-Config']);
-					if (request.sub) {
-						sendResponse({"data": background.config[request.sub]});
-					} else if (request.tcs) {
-						var tcs = JSON.parse(localStorage['ChromeLL-TCs']);
-						sendResponse({"data": background.config, "tcs": tcs});
-					} else {
-						sendResponse({"data": background.config});
-					}
+					chrome.storage.local.get("ChromeLL-Config", (obj) => {
+						background.config = JSON.parse(obj['ChromeLL-Config']);
+						if (request.sub) {
+							sendResponse({"data": background.config[request.sub]});
+						} else if (request.tcs) {
+							chrome.storage.local.get("ChromeLL-TCs", (obj) => {
+								var tcs = JSON.parse(obj['ChromeLL-TCs']);
+								sendResponse({"data": background.config, "tcs": tcs});
+							})
+						} else {
+							sendResponse({"data": background.config});
+						}	
+					})
 					break;
 					
 				case "save":
 					// page script needs config save.
 					if (request.name === "tcs") {
-						localStorage['ChromeLL-TCs'] = JSON.stringify(request.data);
+						chrome.storage.local.set('ChromeLL-TCs', JSON.stringify(request.data));
 					} else {
 						background.config[request.name] = request.data;
 						background.config.last_saved = new Date().getTime();
@@ -882,93 +864,92 @@ var background = {
 	},
 	
 	getUserID: function() {
-		var config = JSON.parse(localStorage['ChromeLL-Config']);
-		var xhr = new XMLHttpRequest();
-		xhr.open("GET", "https://boards.endoftheinter.net/topics/LUE", true);
-		xhr.onreadystatechange = function() {
-			if (xhr.readyState == 4 && xhr.status == 200) {
-				var html = document.createElement('html');
-				html.innerHTML = xhr.responseText;
-				
-				if (html.getElementsByTagName('title')[0].innerText.indexOf("Das Ende des Internets") > -1) {
-					// user is logged out
-					return;
+		chrome.storage.local.get('ChromeLL-Config', (obj) => {
+			var config = JSON.parse(obj['ChromeLL-Config']);
+			fetch("https://boards.endoftheinter.net/topics/LUE").then(response => {
+				if (response.ok) {
+					response.text();
 				}
-				
-				else {
-					var userID = html.getElementsByClassName('userbar')[0]
-						.getElementsByTagName('a')[0].href
-						.match(/\?user=([0-9]+)/)[1];
+			}).then(responseText => {
+					var html = document.createElement('html');
+					html.innerHTML = responseText;
+					if (html.getElementsByTagName('title')[0].innerText.indexOf("Das Ende des Internets") > -1) {
+						// user is logged out
+						return;
+					}
+					else {
+						var userID = html.getElementsByClassName('userbar')[0]
+							.getElementsByTagName('a')[0].href
+							.match(/\?user=([0-9]+)/)[1];
 						
-					config.user_id = userID;
-					localStorage['ChromeLL-Config'] = JSON.stringify(config);
-					background.scrapeUserProfile(userID);
-				}
-			}
-		}
-		xhr.send();
+						config.user_id = userID;
+						chrome.storage.local.set('ChromeLL-Config', JSON.stringify(config));
+						background.scrapeUserProfile(userID);
+					}
+				})
+		});
 	},
 	
 	scrapeUserProfile: function(userID) {
-		var config = JSON.parse(localStorage['ChromeLL-Config']);
-		var url = "https://endoftheinter.net/profile.php?user=" + userID;
-		var xhr = new XMLHttpRequest();
-				
-		xhr.open("GET", url, true);
-		xhr.onreadystatechange = function() {
-			if (xhr.readyState == 4 && xhr.status == 200) {
-				var adminTags, modTags, isAdmin, isMod;
-				
-				var html = document.createElement('html');
-				html.innerHTML = xhr.responseText;
-				
-				var adminArray, modArray, creationDate;
-				var tds = html.getElementsByTagName("td");
-				
-				for (var i = 0; i < tds.length; i++) {
-					var td = tds[i];
-					if (td.innerText.indexOf("Administrator of") > -1) {
-						adminTags = tds[i + 1].getElementsByTagName('a');
-						isAdmin = true;
-					}
-					if (td.innerText.indexOf("Moderator of") > -1) {
-						modTags = tds[i + 1].getElementsByTagName('a');
-						isMod = true;
-					}
-					if (td.innerText.indexOf("Account Created") > -1) {
-						creationDate = tds[i + 1].innerHTML;
-					}
+		chrome.storage.local.get('ChromeLL-Config', (obj) => {
+			var config = JSON.parse(obj['ChromeLL-Config']);
+			var url = "https://endoftheinter.net/profile.php?user=" + userID;
+			fetch(url).then(response => {
+				if (response.ok) {
+					response.text();
 				}
-				
-				if (isAdmin) {
-					adminArray = Array.prototype.slice.call(adminTags);
-				}
-				if (isMod) {
-					modArray = Array.prototype.slice.call(modTags);
-				}
-				
-				if (isAdmin && isMod) {
-					var tagArray = adminArray.concat(modArray);
-				
-					for (var i = 0, len = tagArray.length; i < len; i++) {
-						var tag = tagArray[i].innerText;
-						tagArray[i] = tag;
+			}).then(responseText => {
+					var adminTags, modTags, isAdmin, isMod;
+					
+					var html = document.createElement('html');
+					html.innerHTML = responseText;
+					
+					var adminArray, modArray, creationDate;
+					var tds = html.getElementsByTagName("td");
+					
+					for (var i = 0; i < tds.length; i++) {
+						var td = tds[i];
+						if (td.innerText.indexOf("Administrator of") > -1) {
+							adminTags = tds[i + 1].getElementsByTagName('a');
+							isAdmin = true;
+						}
+						if (td.innerText.indexOf("Moderator of") > -1) {
+							modTags = tds[i + 1].getElementsByTagName('a');
+							isMod = true;
+						}
+						if (td.innerText.indexOf("Account Created") > -1) {
+							creationDate = tds[i + 1].innerHTML;
+						}
 					}
 					
-					config.tag_admin = tagArray;
-				}
-			
-				config.creation_date = creationDate;
-				
-				localStorage['ChromeLL-Config'] = JSON.stringify(config);
-				
-				if (config.debug) {
-					console.log("User Profile = " + url);
-					console.log(tagArray);
-				}
-			}
-		}
-		xhr.send();
+					if (isAdmin) {
+						adminArray = Array.prototype.slice.call(adminTags);
+					}
+					if (isMod) {
+						modArray = Array.prototype.slice.call(modTags);
+					}
+					
+					if (isAdmin && isMod) {
+						var tagArray = adminArray.concat(modArray);
+						
+						for (var i = 0, len = tagArray.length; i < len; i++) {
+							var tag = tagArray[i].innerText;
+							tagArray[i] = tag;
+						}
+						
+						config.tag_admin = tagArray;
+					}
+					
+					config.creation_date = creationDate;
+					
+					chrome.storage.local.set('ChromeLL-Config', JSON.stringify(config));
+					
+					if (config.debug) {
+						console.log("User Profile = " + url);
+						console.log(tagArray);
+					}
+			})
+		})
 	},
 	omniboxSearch: function() {
 		var arrayForSearch = [];
@@ -1432,41 +1413,33 @@ var ajax = function(request, callback) {
 	
 	else {
 		var TWENTY_FOUR_HOURS = 86400000; // 24 hours in milliseconds
-		var type = request.type || 'GET';
-		var xhr = new XMLHttpRequest();
-		xhr.requestURL = url;
-		xhr.open(type, request.url, true);
+		var type = request.type || 'GET'
+		var headers = {}
 		
 		if (request.noCache) {
-			xhr.setRequestHeader('Cache-Control', 'no-cache');
+			headers['Cache-Control'] = 'no-cache';
 		}
 		if (request.auth) {
-			xhr.setRequestHeader('Authorization', request.auth);
+			headers['Authorization'] = request.auth;
 		}
+		var wrapper = {headers: headers}
 		if (request.withCredentials) {
-			xhr.withCredentials = "true";
+			wrapper['credentials'] = "include";
 		}
 		
-		xhr.onload = function() {
-			switch(this.status) {
-				case 200:
-					if (!request.ignoreCache) {
-						// Cache response and check again after 24 hours
-						ajaxCache[this.requestURL] = {
-							data: this.responseText,
-							refreshTime: currentTime + TWENTY_FOUR_HOURS
-						};
-					}
-					
-					callback(this.responseText);
-					break;
-					
-				default:				
-					callback(this.responseText);
-					break;
+		fetch(url, wrapper).then(response => {
+			if (response.ok) {
+				response.text();
 			}
-		};
-		
-		xhr.send();		
+		}).then(responseText => {
+			if (!request.ignoreCache) {
+				// Cache response and check again after 24 hours
+				ajaxCache[this.requestURL] = {
+					data: this.responseText,
+					refreshTime: currentTime + TWENTY_FOUR_HOURS
+				};
+			}
+			callback(this.responseText);
+		});
 	}
 };
